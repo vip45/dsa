@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/VIPIN/OneDrive/Documents/GitHub/dsa/1-BitWiseOperators",
-      "program": "c:/Users/VIPIN/OneDrive/Documents/GitHub/dsa/1-BitWiseOperators/build/Debug/outDebug",
+      "cwd": "c:/Users/VIPIN/OneDrive/Desktop/projects/dsa/1-Basics/Patterns",
+      "program": "c:/Users/VIPIN/OneDrive/Desktop/projects/dsa/1-Basics/Patterns/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
