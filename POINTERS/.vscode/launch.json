@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/VIPIN/OneDrive/Desktop/GOAL/DSA/TREES",
-      "program": "c:/Users/VIPIN/OneDrive/Desktop/GOAL/DSA/TREES/build/Debug/outDebug",
+      "cwd": "c:/Users/VIPIN/OneDrive/Desktop/GOAL/DSA/POINTERS",
+      "program": "c:/Users/VIPIN/OneDrive/Desktop/GOAL/DSA/POINTERS/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
