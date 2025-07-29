@@ -1,4 +1,2 @@
-function ab(w,f,f,f,g){
+// asynchronous javasript coding
 
-}
-console.log(ab.length);
