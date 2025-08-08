@@ -44,7 +44,7 @@
 .slider-row {
   display: flex;
   gap: 20px;
-  animation: scroll-left 35s linear infinite;
+  animation: scroll-left 12s linear infinite;
 }
 .slider-div {
   padding: 8px 16px;

@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive DSA Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --primary-card: #1e1e1e;
+            --secondary-card: #2a2a2a;
+            --border-color: #333333;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --accent-primary: #bb86fc;
+            --accent-secondary: #03dac6;
+            --accent-red: #cf6679;
+            --completed-text: #6c757d;
+            --sidebar-width: 260px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            display: flex;
+        }
+
+        /* --- Sidebar Styles --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            background-color: var(--primary-card);
+            padding: 25px 15px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            transition: transform 0.3s ease-in-out;
+            z-index: 1001;
+        }
+
+        .sidebar-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.5rem;
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        .sidebar-nav ul {
+            list-style: none;
+        }
+
+        .sidebar-nav li a {
+            display: block;
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            font-weight: 500;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .sidebar-nav li a:hover {
+            background-color: var(--secondary-card);
+            color: var(--text-primary);
+        }
+
+        .sidebar-nav li a.active {
+            background-color: var(--accent-primary);
+            color: var(--bg-dark);
+            font-weight: 600;
+        }
+
+        /* --- Main Content Styles --- */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            width: calc(100% - var(--sidebar-width));
+            padding: 30px;
+            overflow-y: auto;
+            height: 100vh;
+        }
+
+        .content-section {
+            display: none;
+            /* Hidden by default */
+        }
+
+        .content-section.active {
+            display: block;
+            /* Show active section */
+        }
+
+        .content-header h2 {
+            font-size: 2.2rem;
+            color: var(--text-primary);
+            margin-bottom: 25px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+        }
+
+        .roadmap-section {
+            background-color: var(--primary-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 25px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-number {
+            background-color: var(--accent-primary);
+            color: var(--bg-dark);
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.4rem;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+
+        .section-header h3 {
+            font-size: 1.8rem;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* Timer Styles */
+        .timer-section {
+            text-align: center;
+        }
+
+        .timer-display {
+            font-size: 4rem;
+            font-weight: 700;
+            color: var(--accent-secondary);
+            margin: 15px 0;
+            letter-spacing: 4px;
+            text-shadow: 0 0 10px rgba(3, 218, 198, 0.3);
+        }
+
+        .timer-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .timer-btn {
+            padding: 10px 25px;
+            font-size: 1rem;
+            font-family: 'Poppins', sans-serif;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid var(--accent-primary);
+            background-color: transparent;
+            color: var(--accent-primary);
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .timer-btn:hover:not(:disabled) {
+            background-color: var(--accent-primary);
+            color: var(--bg-dark);
+        }
+
+        .timer-btn:disabled {
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        #resetBtn {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        #resetBtn:hover:not(:disabled) {
+            background-color: var(--accent-red);
+            color: var(--bg-dark);
+        }
+
+        /* Checklist Styles */
+        .checklist ul {
+            list-style: none;
+            padding-left: 25px;
+            margin-left: 22px;
+            border-left: 2px dashed var(--border-color);
+            position: relative;
+        }
+
+        .checklist li {
+            padding: 8px 0 8px 10px;
+            position: relative;
+            font-size: 1rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .checklist li label {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            width: 100%;
+            transition: color 0.3s ease;
+        }
+
+        .checklist li input[type="checkbox"] {
+            display: none;
+        }
+
+        .checklist li .custom-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--text-secondary);
+            border-radius: 4px;
+            margin-right: 15px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            margin-top: 4px;
+        }
+
+        .checklist li .custom-checkbox::after {
+            content: '✔';
+            color: var(--bg-dark);
+            font-size: 14px;
+            opacity: 0;
+            transform: scale(0);
+            transition: all 0.3s ease;
+        }
+
+        .checklist li input:checked+label .custom-checkbox {
+            background-color: var(--accent-secondary);
+            border-color: var(--accent-secondary);
+        }
+
+        .checklist li input:checked+label .custom-checkbox::after {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .checklist li input:checked+label {
+            color: var(--completed-text);
+            text-decoration: line-through;
+        }
+
+        .checklist li strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .checklist li input:checked+label strong {
+            color: var(--completed-text);
+            font-weight: normal;
+        }
+
+        .checklist li ul {
+            margin-top: 8px;
+            margin-left: 10px;
+            border-left-style: solid;
+            width: 100%;
+        }
+
+        /* Chart Styles */
+        .chart-container {
+            position: relative;
+            min-height: 300px;
+            width: 100%;
+            padding: 20px;
+            background: var(--secondary-card);
+            border-radius: 8px;
+        }
+
+        /* Pro Tips Section */
+        .pro-tips {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: rgba(187, 134, 252, 0.1);
+            border-left: 4px solid var(--accent-primary);
+            border-radius: 0 8px 8px 0;
+        }
+
+        .pro-tips h4 {
+            font-size: 1.2rem;
+            color: var(--accent-primary);
+            margin-bottom: 10px;
+        }
+
+        .pro-tips p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Total Time Tracker */
+        .total-time-tracker {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--primary-card);
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+
+        .total-time-tracker strong {
+            color: var(--text-secondary);
+        }
+
+        .total-time-tracker #totalTimeDisplay {
+            font-weight: 600;
+            color: var(--accent-primary);
+            background-color: var(--secondary-card);
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 1rem;
+        }
+
+        /* Mobile Nav Toggle */
+        .mobile-nav-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1002;
+            background: var(--primary-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .mobile-nav-toggle span {
+            display: block;
+            width: 20px;
+            height: 2px;
+            background: var(--text-primary);
+            margin: 4px auto;
+            transition: all 0.3s;
+        }
+
+        .mobile-nav-toggle.open span:nth-child(1) {
+            transform: translateY(6px) rotate(45deg);
+        }
+
+        .mobile-nav-toggle.open span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .mobile-nav-toggle.open span:nth-child(3) {
+            transform: translateY(-6px) rotate(-45deg);
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        @media (max-width: 1024px) {
+            body {
+                display: block;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+                height: auto;
+            }
+
+            .mobile-nav-toggle {
+                display: block;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 20px;
+                padding-top: 70px;
+            }
+
+            .content-header h2 {
+                font-size: 1.8rem;
+            }
+
+            .timer-display {
+                font-size: 3rem;
+            }
+
+            .total-time-tracker {
+                width: calc(100% - 40px);
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <button class="mobile-nav-toggle" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+    <div class="overlay"></div>
+
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1>DSA Dashboard</h1>
+        </div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="#dashboard" class="nav-link active">Dashboard</a></li>
+                <li><a href="#fundamentals" class="nav-link">1. Fundamentals</a></li>
+                <li><a href="#arrays" class="nav-link">2. Arrays</a></li>
+                <li><a href="#strings" class="nav-link">3. Strings</a></li>
+                <li><a href="#hashing" class="nav-link">4. Hashing</a></li>
+                <li><a href="#searching" class="nav-link">5. Searching & Sorting</a></li>
+                <li><a href="#linkedlist" class="nav-link">6. Linked List</a></li>
+                <li><a href="#stackqueue" class="nav-link">7. Stack & Queue</a></li>
+                <li><a href="#heap" class="nav-link">8. Heap / Priority Queue</a></li>
+                <li><a href="#trees" class="nav-link">9. Binary Trees</a></li>
+                <li><a href="#bst" class="nav-link">10. Binary Search Trees</a></li>
+                <li><a href="#graphs" class="nav-link">11. Graphs</a></li>
+                <li><a href="#backtracking" class="nav-link">12. Recursion & Backtracking</a></li>
+                <li><a href="#dp" class="nav-link">13. Dynamic Programming</a></li>
+                <li><a href="#greedy" class="nav-link">14. Greedy Algorithms</a></li>
+                <li><a href="#advanced" class="nav-link">15. Advanced DS</a></li>
+                <li><a href="#revision" class="nav-link">16. Revision</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="content-section active">
+            <div class="content-header">
+                <h2>Dashboard</h2>
+            </div>
+            <div class="dashboard-grid">
+                <div class="roadmap-section timer-section">
+                    <div class="section-header">
+                        <span class="section-number" style="background-color: #03dac6; color: #000;">⏱️</span>
+                        <h3>Study Timer</h3>
+                    </div>
+                    <div class="timer-display" id="timerDisplay">00:00:00</div>
+                    <div class="timer-controls">
+                        <button id="startBtn" class="timer-btn">Start</button>
+                        <button id="pauseBtn" class="timer-btn" disabled>Pause</button>
+                        <button id="resetBtn" class="timer-btn" disabled>Reset & Save</button>
+                    </div>
+                </div>
+                <div class="roadmap-section">
+                    <div class="section-header">
+                        <span class="section-number" style="background-color: #03dac6; color: #000;">📈</span>
+                        <h3>Daily Study Progress (Hours)</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="studyChart"></canvas>
+                    </div>
+                </div>
+                <div class="roadmap-section">
+                    <div class="section-header">
+                        <span class="section-number" style="background-color: #03dac6; color: #000;">🎯</span>
+                        <h3>Overall Progress</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="completionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Fundamentals Section -->
+        <section id="fundamentals" class="content-section">
+            <div class="content-header">
+                <h2>1. Fundamentals</h2>
+            </div>
+            <div class="roadmap-section checklist">
+                <ul>
+                    <li><input type="checkbox" id="cb-s1-1" class="topic-checkbox"><label for="cb-s1-1"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Time & Space Complexity:</strong> Big-O, Big-Theta, Big-Omega</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s1-2" class="topic-checkbox"><label for="cb-s1-2"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Common complexities:</strong> O(1), O(log n), O(n), O(n log n), O(n²), 2^n, n!
+                            </div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s1-3" class="topic-checkbox"><label for="cb-s1-3"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>How constraints decide complexity</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s1-4" class="topic-checkbox"><label for="cb-s1-4"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Recursion Basics:</strong> Recursion tree & stack memory</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s1-5" class="topic-checkbox"><label for="cb-s1-5"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Examples:</strong> Factorial, Fibonacci (recursive, memoization)</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s1-6" class="topic-checkbox"><label for="cb-s1-6"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Tail recursion vs normal recursion</strong></div>
+                        </label></li>
+                    <li>
+                        <input type="checkbox" id="cb-s1-7" class="topic-checkbox"><label for="cb-s1-7"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Mathematics:</strong></div>
+                        </label>
+                        <ul>
+                            <li><input type="checkbox" id="cb-s1-7-1" class="topic-checkbox"><label
+                                    for="cb-s1-7-1"><span class="custom-checkbox"></span>Prime check, Sieve of
+                                    Eratosthenes</label></li>
+                            <li><input type="checkbox" id="cb-s1-7-2" class="topic-checkbox"><label
+                                    for="cb-s1-7-2"><span class="custom-checkbox"></span>GCD, LCM (Euclidean
+                                    algorithm)</label></li>
+                            <li><input type="checkbox" id="cb-s1-7-3" class="topic-checkbox"><label
+                                    for="cb-s1-7-3"><span class="custom-checkbox"></span>Modular arithmetic (fast
+                                    power)</label></li>
+                        </ul>
+                    </li>
+                </ul>
+                <div class="pro-tips">
+                    <h4>Pro Tips for High-Paying Jobs</h4>
+                    <p>Mastering Big-O is non-negotiable. In interviews, you must clearly explain the time and space
+                        complexity of your solution and justify why it's optimal. Be prepared to discuss trade-offs
+                        (e.g., using more space to achieve a faster runtime).</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Arrays Section -->
+        <section id="arrays" class="content-section">
+            <div class="content-header">
+                <h2>2. Arrays</h2>
+            </div>
+            <div class="roadmap-section checklist">
+                <ul>
+                    <li><input type="checkbox" id="cb-s2-1" class="topic-checkbox"><label for="cb-s2-1"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Traversal & manipulation:</strong> insert, delete, reverse</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s2-2" class="topic-checkbox"><label for="cb-s2-2"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Prefix sum, suffix sum</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s2-3" class="topic-checkbox"><label for="cb-s2-3"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Kadane’s algorithm:</strong> max subarray sum</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s2-4" class="topic-checkbox"><label for="cb-s2-4"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Two Pointer Technique:</strong> Pair sum, Move zeros, Reverse vowels</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s2-5" class="topic-checkbox"><label for="cb-s2-5"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Sliding Window:</strong> Fixed & Variable window</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s2-6" class="topic-checkbox"><label for="cb-s2-6"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Rotate array</strong> (by k positions)</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s2-7" class="topic-checkbox"><label for="cb-s2-7"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Merge intervals</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s2-8" class="topic-checkbox"><label for="cb-s2-8"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Find missing/repeating number</strong></div>
+                        </label></li>
+                </ul>
+                <div class="pro-tips">
+                    <h4>Pro Tips for High-Paying Jobs</h4>
+                    <p><strong>Two Pointers</strong> and <strong>Sliding Window</strong> are the most frequent and
+                        important patterns for array problems in top tech companies. Master them. Be able to identify
+                        when a problem can be optimized from O(n²) to O(n) using one of these techniques.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Strings Section -->
+        <section id="strings" class="content-section">
+            <div class="content-header">
+                <h2>3. Strings</h2>
+            </div>
+            <div class="roadmap-section checklist">
+                <ul>
+                    <li><input type="checkbox" id="cb-s3-1" class="topic-checkbox"><label for="cb-s3-1"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>String traversal & comparison</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s3-2" class="topic-checkbox"><label for="cb-s3-2"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Reverse words / string</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s3-3" class="topic-checkbox"><label for="cb-s3-3"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Check palindrome / anagram</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s3-4" class="topic-checkbox"><label for="cb-s3-4"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Count frequency of characters</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s3-5" class="topic-checkbox"><label for="cb-s3-5"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>String compression</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s3-6" class="topic-checkbox"><label for="cb-s3-6"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Pattern searching</strong> (Naive, KMP)</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s3-7" class="topic-checkbox"><label for="cb-s3-7"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Subsequence & substring problems</strong></div>
+                        </label></li>
+                </ul>
+                <div class="pro-tips">
+                    <h4>Pro Tips for High-Paying Jobs</h4>
+                    <p>Basic string manipulation is a must. While advanced algorithms like KMP are impressive, they are
+                        asked less frequently. Focus more on solving substring/subsequence problems, often using Hashing
+                        or Dynamic Programming.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Hashing Section -->
+        <section id="hashing" class="content-section">
+            <div class="content-header">
+                <h2>4. Hashing</h2>
+            </div>
+            <div class="roadmap-section checklist">
+                <ul>
+                    <li><input type="checkbox" id="cb-s4-1" class="topic-checkbox"><label for="cb-s4-1"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Hash maps & hash sets</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s4-2" class="topic-checkbox"><label for="cb-s4-2"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Frequency count</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s4-3" class="topic-checkbox"><label for="cb-s4-3"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Two-sum problem</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s4-4" class="topic-checkbox"><label for="cb-s4-4"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Subarray sum = k</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s4-5" class="topic-checkbox"><label for="cb-s4-5"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Longest consecutive sequence</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s4-6" class="topic-checkbox"><label for="cb-s4-6"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Group anagrams</strong></div>
+                        </label></li>
+                </ul>
+                <div class="pro-tips">
+                    <h4>Pro Tips for High-Paying Jobs</h4>
+                    <p>Hashing is your key to optimization. If you see a problem involving frequencies, pairs, or
+                        checking for duplicates, your first thought should be "Can I use a hash map/set to get O(1)
+                        lookups?". The Two-Sum pattern is the "Hello, World!" of hashing problems.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Searching & Sorting Section -->
+        <section id="searching" class="content-section">
+            <div class="content-header">
+                <h2>5. Searching & Sorting</h2>
+            </div>
+            <div class="roadmap-section checklist">
+                <ul>
+                    <li><input type="checkbox" id="cb-s5-1" class="topic-checkbox"><label for="cb-s5-1"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Linear & Binary search basics</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s5-2" class="topic-checkbox"><label for="cb-s5-2"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Binary search on answer</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s5-3" class="topic-checkbox"><label for="cb-s5-3"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Lower bound / upper bound logic</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s5-4" class="topic-checkbox"><label for="cb-s5-4"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Sorting:</strong> Bubble, Selection, Insertion, Merge, Quick</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s5-5" class="topic-checkbox"><label for="cb-s5-5"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Search in rotated sorted array</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s5-6" class="topic-checkbox"><label for="cb-s5-6"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Median of two sorted arrays</strong></div>
+                        </label></li>
+                </ul>
+                <div class="pro-tips">
+                    <h4>Pro Tips for High-Paying Jobs</h4>
+                    <p>Binary Search is not just for finding elements. The "Binary Search on Answer" pattern is a
+                        powerful technique for optimization problems (e.g., "minimize the maximum value...").
+                        Recognizing this pattern will set you apart from other candidates.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Linked List Section -->
+        <section id="linkedlist" class="content-section">
+            <div class="content-header">
+                <h2>6. Linked List</h2>
+            </div>
+            <div class="roadmap-section checklist">
+                <ul>
+                    <li><input type="checkbox" id="cb-s6-1" class="topic-checkbox"><label for="cb-s6-1"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Singly linked list:</strong> insert, delete</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s6-2" class="topic-checkbox"><label for="cb-s6-2"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Reverse linked list</strong> (iterative, recursive)</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s6-3" class="topic-checkbox"><label for="cb-s6-3"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Detect & remove cycle</strong> (Floyd’s)</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s6-4" class="topic-checkbox"><label for="cb-s6-4"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Merge two sorted linked lists</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s6-5" class="topic-checkbox"><label for="cb-s6-5"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Middle of linked list</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s6-6" class="topic-checkbox"><label for="cb-s6-6"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Doubly linked list basics</strong></div>
+                        </label></li>
+                </ul>
+                <div class="pro-tips">
+                    <h4>Pro Tips for High-Paying Jobs</h4>
+                    <p>Interviewers use linked lists to test your handling of pointers and edge cases (e.g., empty list,
+                        single-node list). Floyd's Cycle Detection (the "tortoise and hare" algorithm) is a classic and
+                        frequently asked pattern.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stack & Queue Section -->
+        <section id="stackqueue" class="content-section">
+            <div class="content-header">
+                <h2>7. Stack & Queue</h2>
+            </div>
+            <div class="roadmap-section checklist">
+                <ul>
+                    <li><input type="checkbox" id="cb-s7-1" class="topic-checkbox"><label for="cb-s7-1"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Stack:</strong> Implement, Next greater element, Valid parentheses</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s7-2" class="topic-checkbox"><label for="cb-s7-2"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Queue:</strong> Implement, Circular, Using stacks</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s7-3" class="topic-checkbox"><label for="cb-s7-3"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Monotonic stack/deque:</strong> Sliding window max, Largest rectangle</div>
+                        </label></li>
+                </ul>
+                <div class="pro-tips">
+                    <h4>Pro Tips for High-Paying Jobs</h4>
+                    <p>Beyond basic LIFO/FIFO, the <strong>Monotonic Stack</strong> is a powerful pattern for solving
+                        problems involving "the next greater/smaller element" or range-based queries. Mastering it shows
+                        a deeper level of understanding.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Heap Section -->
+        <section id="heap" class="content-section">
+            <div class="content-header">
+                <h2>8. Heap / Priority Queue</h2>
+            </div>
+            <div class="roadmap-section checklist">
+                <ul>
+                    <li><input type="checkbox" id="cb-s8-1" class="topic-checkbox"><label for="cb-s8-1"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Min heap & max heap basics</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s8-2" class="topic-checkbox"><label for="cb-s8-2"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Kth largest/smallest element</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s8-3" class="topic-checkbox"><label for="cb-s8-3"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Merge k sorted arrays</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s8-4" class="topic-checkbox"><label for="cb-s8-4"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Top K frequent elements</strong></div>
+                        </label></li>
+                </ul>
+                <div class="pro-tips">
+                    <h4>Pro Tips for High-Paying Jobs</h4>
+                    <p>If you see "Top K", "Largest K", or "Median in a stream", think <strong>Heap</strong>. Knowing
+                        how to use a min-heap to find the Kth largest element (and vice-versa) is a classic,
+                        high-frequency interview pattern.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Binary Trees Section -->
+        <section id="trees" class="content-section">
+            <div class="content-header">
+                <h2>9. Binary Trees</h2>
+            </div>
+            <div class="roadmap-section checklist">
+                <ul>
+                    <li><input type="checkbox" id="cb-s9-1" class="topic-checkbox"><label for="cb-s9-1"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Traversals:</strong> Inorder, Preorder, Postorder, Level order</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s9-2" class="topic-checkbox"><label for="cb-s9-2"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Height & Diameter of tree</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s9-3" class="topic-checkbox"><label for="cb-s9-3"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Balanced binary tree check</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s9-4" class="topic-checkbox"><label for="cb-s9-4"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Lowest common ancestor (LCA)</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s9-5" class="topic-checkbox"><label for="cb-s9-5"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Path sum problems</strong></div>
+                        </label></li>
+                </ul>
+                <div class="pro-tips">
+                    <h4>Pro Tips for High-Paying Jobs</h4>
+                    <p>You must be able to implement all four traversals both recursively and iteratively. Iterative
+                        solutions (using a stack) are often required as a follow-up. Level-order traversal (using a
+                        queue) is the foundation for many tree problems.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- BST Section -->
+        <section id="bst" class="content-section">
+            <div class="content-header">
+                <h2>10. Binary Search Trees (BST)</h2>
+            </div>
+            <div class="roadmap-section checklist">
+                <ul>
+                    <li><input type="checkbox" id="cb-s10-1" class="topic-checkbox"><label for="cb-s10-1"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Insert, delete, search</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s10-2" class="topic-checkbox"><label for="cb-s10-2"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Validate BST</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s10-3" class="topic-checkbox"><label for="cb-s10-3"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>BST inorder successor & predecessor</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s10-4" class="topic-checkbox"><label for="cb-s10-4"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Range sum in BST</strong></div>
+                        </label></li>
+                </ul>
+                <div class="pro-tips">
+                    <h4>Pro Tips for High-Paying Jobs</h4>
+                    <p>The key property of a BST is that an inorder traversal yields a sorted sequence of its nodes.
+                        This property is the basis for many BST problems, including validation and finding elements in a
+                        range. Be ready to explain this.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Graphs Section -->
+        <section id="graphs" class="content-section">
+            <div class="content-header">
+                <h2>11. Graphs</h2>
+            </div>
+            <div class="roadmap-section checklist">
+                <ul>
+                    <li><input type="checkbox" id="cb-s11-1" class="topic-checkbox"><label for="cb-s11-1"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Representation:</strong> Adjacency list/matrix</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s11-2" class="topic-checkbox"><label for="cb-s11-2"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>BFS, DFS, Connected components</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s11-3" class="topic-checkbox"><label for="cb-s11-3"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Cycle detection (BFS, DFS)</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s11-4" class="topic-checkbox"><label for="cb-s11-4"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Topological sort (DFS, Kahn’s)</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s11-5" class="topic-checkbox"><label for="cb-s11-5"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Shortest path:</strong> BFS, Dijkstra</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s11-6" class="topic-checkbox"><label for="cb-s11-6"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Minimum spanning tree:</strong> Kruskal, Prim</div>
+                        </label></li>
+                </ul>
+                <div class="pro-tips">
+                    <h4>Pro Tips for High-Paying Jobs</h4>
+                    <p>Graphs are everywhere. Master BFS (for shortest path in unweighted graphs) and DFS (for
+                        traversal, cycle detection). For weighted shortest paths, <strong>Dijkstra's algorithm</strong>
+                        is a must-know. Be comfortable with adjacency list representation.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Backtracking Section -->
+        <section id="backtracking" class="content-section">
+            <div class="content-header">
+                <h2>12. Recursion & Backtracking</h2>
+            </div>
+            <div class="roadmap-section checklist">
+                <ul>
+                    <li><input type="checkbox" id="cb-s12-1" class="topic-checkbox"><label for="cb-s12-1"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Subset generation</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s12-2" class="topic-checkbox"><label for="cb-s12-2"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Permutations & combinations</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s12-3" class="topic-checkbox"><label for="cb-s12-3"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>N-Queens problem</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s12-4" class="topic-checkbox"><label for="cb-s12-4"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Rat in a maze</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s12-5" class="topic-checkbox"><label for="cb-s12-5"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Sudoku solver</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s12-6" class="topic-checkbox"><label for="cb-s12-6"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Word search in grid</strong></div>
+                        </label></li>
+                </ul>
+                <div class="pro-tips">
+                    <h4>Pro Tips for High-Paying Jobs</h4>
+                    <p>Backtracking problems test your ability to structure recursive solutions. Focus on the "choose,
+                        explore, unchoose" template. Be able to draw the recursion tree for a small example to explain
+                        your approach to the interviewer.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- DP Section -->
+        <section id="dp" class="content-section">
+            <div class="content-header">
+                <h2>13. Dynamic Programming (DP)</h2>
+            </div>
+            <div class="roadmap-section checklist">
+                <ul>
+                    <li><input type="checkbox" id="cb-s13-1" class="topic-checkbox"><label for="cb-s13-1"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Intro:</strong> memoization vs tabulation</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s13-2" class="topic-checkbox"><label for="cb-s13-2"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>1D DP:</strong> Fibonacci, Climbing stairs, House robber</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s13-3" class="topic-checkbox"><label for="cb-s13-3"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>2D DP:</strong> Grid unique paths, Min path sum</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s13-4" class="topic-checkbox"><label for="cb-s13-4"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>DP on strings:</strong> LCS, Edit distance</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s13-5" class="topic-checkbox"><label for="cb-s13-5"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Knapsack patterns:</strong> 0/1, Unbounded</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s13-6" class="topic-checkbox"><label for="cb-s13-6"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Longest increasing subsequence (LIS)</strong></div>
+                        </label></li>
+                </ul>
+                <div class="pro-tips">
+                    <h4>Pro Tips for High-Paying Jobs</h4>
+                    <p>DP is often considered the hardest topic, but it's really about pattern recognition. Focus on
+                        identifying the state and the transition. Can you solve the problem for `n` if you know the
+                        solution for `n-1`? Start with memoization (top-down) as it's often more intuitive.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Greedy Section -->
+        <section id="greedy" class="content-section">
+            <div class="content-header">
+                <h2>14. Greedy Algorithms</h2>
+            </div>
+            <div class="roadmap-section checklist">
+                <ul>
+                    <li><input type="checkbox" id="cb-s14-1" class="topic-checkbox"><label for="cb-s14-1"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Activity selection</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s14-2" class="topic-checkbox"><label for="cb-s14-2"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Minimum coins for change</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s14-3" class="topic-checkbox"><label for="cb-s14-3"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Huffman coding</strong> (optional)</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s14-4" class="topic-checkbox"><label for="cb-s14-4"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Interval scheduling</strong></div>
+                        </label></li>
+                </ul>
+                <div class="pro-tips">
+                    <h4>Pro Tips for High-Paying Jobs</h4>
+                    <p>For Greedy problems, the challenge isn't the code, but proving the greedy choice is correct. In
+                        an interview, you must be able to justify why making the locally optimal choice leads to a
+                        globally optimal solution.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Advanced DS Section -->
+        <section id="advanced" class="content-section">
+            <div class="content-header">
+                <h2>15. Advanced Data Structures</h2>
+            </div>
+            <div class="roadmap-section checklist">
+                <ul>
+                    <li><input type="checkbox" id="cb-s15-1" class="topic-checkbox"><label for="cb-s15-1"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Trie:</strong> insert, search, prefix search</div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s15-2" class="topic-checkbox"><label for="cb-s15-2"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Disjoint Set Union (Union-Find)</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s15-3" class="topic-checkbox"><label for="cb-s15-3"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Segment tree & Fenwick tree (BIT)</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s15-4" class="topic-checkbox"><label for="cb-s15-4"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>String algorithms:</strong> KMP, Z-algo, Rabin-Karp</div>
+                        </label></li>
+                </ul>
+                <div class="pro-tips">
+                    <h4>Pro Tips for High-Paying Jobs</h4>
+                    <p><strong>Trie</strong> is excellent for phone-screen problems involving dictionary lookups or
+                        autocomplete. <strong>Union-Find</strong> is the go-to for problems about dynamic connectivity
+                        or grouping elements into disjoint sets (e.g., number of provinces).</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Revision Section -->
+        <section id="revision" class="content-section">
+            <div class="content-header">
+                <h2>16. Revision + Mock Interviews</h2>
+            </div>
+            <div class="roadmap-section checklist">
+                <ul>
+                    <li><input type="checkbox" id="cb-s16-1" class="topic-checkbox"><label for="cb-s16-1"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Blind 75 problems list</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s16-2" class="topic-checkbox"><label for="cb-s16-2"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Striver’s SDE Sheet</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s16-3" class="topic-checkbox"><label for="cb-s16-3"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Company-specific past interview questions</strong></div>
+                        </label></li>
+                    <li><input type="checkbox" id="cb-s16-4" class="topic-checkbox"><label for="cb-s16-4"><span
+                                class="custom-checkbox"></span>
+                            <div><strong>Timed coding rounds simulation</strong></div>
+                        </label></li>
+                </ul>
+                <div class="pro-tips">
+                    <h4>Pro Tips for High-Paying Jobs</h4>
+                    <p>Knowledge is useless if you can't apply it under pressure. Simulate real interview conditions:
+                        use a whiteboard, explain your thought process out loud, and solve problems within a time limit.
+                        This is the most crucial step.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <div class="total-time-tracker">
+        <strong>Total Time Studied:</strong>
+        <span id="totalTimeDisplay">Loading...</span>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- DOM Elements ---
+            const timerDisplay = document.getElementById('timerDisplay');
+            const startBtn = document.getElementById('startBtn');
+            const pauseBtn = document.getElementById('pauseBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const totalTimeDisplay = document.getElementById('totalTimeDisplay');
+            const allCheckboxes = document.querySelectorAll('.topic-checkbox');
+            const studyChartCanvas = document.getElementById('studyChart');
+            const completionChartCanvas = document.getElementById('completionChart');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+            const mobileNavToggle = document.querySelector('.mobile-nav-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.querySelector('.overlay');
+
+            // --- State Variables ---
+            let timerInterval = null;
+            let elapsedTime = 0; // in milliseconds
+            let startTime = 0;
+            let isPaused = false;
+            let studyChart = null;
+            let completionChart = null;
+
+            // --- Storage Keys ---
+            const totalTimeKey = 'totalStudyTimeSeconds';
+            const dailyLogKey = 'dailyStudyLog';
+            const checkboxStateKey = 'checkboxStates';
+
+            // --- Get CSS Variables for Chart ---
+            const rootStyles = getComputedStyle(document.documentElement);
+            const textColorSecondary = rootStyles.getPropertyValue('--text-secondary').trim();
+            const borderColor = rootStyles.getPropertyValue('--border-color').trim();
+            const textColorPrimary = rootStyles.getPropertyValue('--text-primary').trim();
+            const accentColorPrimary = rootStyles.getPropertyValue('--accent-primary').trim();
+            const primaryCardColor = rootStyles.getPropertyValue('--primary-card').trim();
+            const accentSecondaryColor = rootStyles.getPropertyValue('--accent-secondary').trim();
+            const accentSecondaryColorTransparent = accentSecondaryColor + '33';
+
+            // --- Navigation Logic ---
+            function showSection(hash) {
+                contentSections.forEach(section => section.classList.remove('active'));
+                navLinks.forEach(link => link.classList.remove('active'));
+
+                const targetSection = document.querySelector(hash);
+                const targetLink = document.querySelector(`a[href="${hash}"]`);
+
+                if (targetSection) targetSection.classList.add('active');
+                if (targetLink) targetLink.classList.add('active');
+
+                sidebar.classList.remove('open');
+                overlay.style.display = 'none';
+                mobileNavToggle.classList.remove('open');
+            }
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetHash = this.getAttribute('href');
+                    try {
+                        history.pushState(null, null, targetHash);
+                    } catch (e) {
+                        window.location.hash = targetHash;
+                    }
+                    showSection(targetHash);
+                });
+            });
+
+            mobileNavToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+                mobileNavToggle.classList.toggle('open');
+                overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+            });
+
+            overlay.addEventListener('click', () => {
+                sidebar.classList.remove('open');
+                mobileNavToggle.classList.remove('open');
+                overlay.style.display = 'none';
+            });
+
+            window.addEventListener('popstate', () => showSection(window.location.hash || '#dashboard'));
+
+            // --- Helper Functions ---
+            function formatTime(timeInSeconds) {
+                const totalSeconds = Math.floor(timeInSeconds);
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+
+            function getTodayDateString() {
+                return new Date().toISOString().split('T')[0];
+            }
+
+            // --- Timer Logic ---
+            function updateTimerDisplay() {
+                timerDisplay.textContent = formatTime(elapsedTime / 1000);
+            }
+
+            function startTimer() {
+                if (isPaused) { isPaused = false; }
+                startTime = Date.now() - elapsedTime;
+                timerInterval = setInterval(() => {
+                    elapsedTime = Date.now() - startTime;
+                    updateTimerDisplay();
+                }, 100);
+                startBtn.disabled = true;
+                pauseBtn.disabled = false;
+                resetBtn.disabled = false;
+                pauseBtn.textContent = 'Pause';
+            }
+
+            function pauseTimer() {
+                if (isPaused || !timerInterval) return;
+                clearInterval(timerInterval);
+                timerInterval = null;
+                isPaused = true;
+                pauseBtn.textContent = 'Resume';
+            }
+
+            function resetTimer() {
+                const sessionSeconds = Math.floor(elapsedTime / 1000);
+                if (sessionSeconds > 0) {
+                    const currentTotal = parseInt(localStorage.getItem(totalTimeKey) || '0', 10);
+                    localStorage.setItem(totalTimeKey, currentTotal + sessionSeconds);
+                    loadTotalTime();
+
+                    const today = getTodayDateString();
+                    const dailyLog = JSON.parse(localStorage.getItem(dailyLogKey) || '{}');
+                    dailyLog[today] = (dailyLog[today] || 0) + sessionSeconds;
+                    localStorage.setItem(dailyLogKey, JSON.stringify(dailyLog));
+
+                    renderOrUpdateStudyChart();
+                }
+
+                clearInterval(timerInterval);
+                timerInterval = null;
+                elapsedTime = 0;
+                isPaused = false;
+                updateTimerDisplay();
+
+                startBtn.disabled = false;
+                pauseBtn.disabled = true;
+                pauseBtn.textContent = 'Pause';
+                resetBtn.disabled = true;
+            }
+
+            // --- Persistence Logic ---
+            function loadTotalTime() {
+                const totalSeconds = parseInt(localStorage.getItem(totalTimeKey) || '0', 10);
+                totalTimeDisplay.textContent = formatTime(totalSeconds);
+            }
+
+            function saveCheckboxStates() {
+                const states = {};
+                allCheckboxes.forEach(cb => { states[cb.id] = cb.checked; });
+                localStorage.setItem(checkboxStateKey, JSON.stringify(states));
+                renderOrUpdateCompletionChart(); // Update chart on change
+            }
+
+            function loadCheckboxStates() {
+                const states = JSON.parse(localStorage.getItem(checkboxStateKey) || '{}');
+                allCheckboxes.forEach(cb => { if (states[cb.id]) { cb.checked = true; } });
+            }
+
+            // --- Chart Logic ---
+            function renderOrUpdateStudyChart() {
+                const dailyLog = JSON.parse(localStorage.getItem(dailyLogKey) || '{}');
+                const sortedDates = Object.keys(dailyLog).sort();
+
+                const chartLabels = sortedDates;
+                const chartData = sortedDates.map(date => (dailyLog[date] / 3600).toFixed(2));
+
+                const data = {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Hours Studied',
+                        backgroundColor: accentSecondaryColorTransparent,
+                        borderColor: accentSecondaryColor,
+                        data: chartData,
+                        fill: true,
+                        tension: 0.3,
+                    }]
+                };
+                const config = {
+                    type: 'line', data: data,
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, ticks: { color: textColorSecondary }, grid: { color: borderColor } },
+                            x: { ticks: { color: textColorSecondary }, grid: { color: borderColor } }
+                        },
+                        plugins: { legend: { labels: { color: textColorPrimary } }, tooltip: { titleColor: accentColorPrimary, bodyColor: textColorPrimary, backgroundColor: primaryCardColor } }
+                    }
+                };
+
+                if (studyChart) { studyChart.data = data; studyChart.update(); }
+                else { studyChart = new Chart(studyChartCanvas, config); }
+            }
+
+            function renderOrUpdateCompletionChart() {
+                const completedCount = document.querySelectorAll('.topic-checkbox:checked').length;
+                const totalCount = allCheckboxes.length;
+                const remainingCount = totalCount - completedCount;
+                const percentage = totalCount > 0 ? ((completedCount / totalCount) * 100).toFixed(1) : 0;
+
+                const data = {
+                    labels: ['Completed', 'Remaining'],
+                    datasets: [{
+                        data: [completedCount, remainingCount],
+                        backgroundColor: [accentSecondaryColor, '#444'],
+                        borderColor: [accentSecondaryColor, '#444'],
+                        borderWidth: 1
+                    }]
+                };
+
+                const config = {
+                    type: 'doughnut', data: data,
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: true },
+                            title: {
+                                display: true,
+                                text: `${percentage}% Complete`,
+                                color: textColorPrimary,
+                                font: { size: 24, weight: '600' },
+                                padding: { top: 10, bottom: 30 }
+                            }
+                        }
+                    }
+                };
+
+                if (completionChart) { completionChart.data = data; completionChart.options.plugins.title.text = `${percentage}% Complete`; completionChart.update(); }
+                else { completionChart = new Chart(completionChartCanvas, config); }
+            }
+
+            // --- Event Listeners ---
+            startBtn.addEventListener('click', startTimer);
+            pauseBtn.addEventListener('click', () => { isPaused ? startTimer() : pauseTimer(); });
+            resetBtn.addEventListener('click', resetTimer);
+            allCheckboxes.forEach(cb => cb.addEventListener('change', saveCheckboxStates));
+
+            // --- Initial Load ---
+            loadTotalTime();
+            loadCheckboxStates();
+            renderOrUpdateStudyChart();
+            renderOrUpdateCompletionChart();
+            showSection(window.location.hash || '#dashboard');
+        });
+    </script>
+</body>
+
+</html>
