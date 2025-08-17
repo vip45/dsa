@@ -17,9 +17,23 @@ void fun2(int n)
         cout << n << endl;
     }
 }
+
+void both(int n)
+{
+    if(n>0)
+    {
+        cout<<"first : ";
+        cout<<n<<endl;
+        both(n-1);
+        cout<<"Second : ";
+        cout<<n<<endl;
+    }
+}
 int main()
 {
     int x = 3;
     fun(x);
     fun2(x);
+    cout<<"asc + desc"<<endl;
+    both(x);
 }
