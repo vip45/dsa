@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NoteFlow — Daily Notes & Summaries</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color .3s ease, color .3s ease
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1
+        }
+
+        .dark ::-webkit-scrollbar-track {
+            background: #2d3748
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background: #555
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555
+        }
+
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #777
+        }
+
+        .note-card {
+            animation: fadeIn .4s ease-out forwards
+        }
+
+        .note-card-exit {
+            animation: fadeOut .25s ease-out forwards
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: scale(1)
+            }
+
+            to {
+                opacity: 0;
+                transform: scale(.96)
+            }
+        }
+
+        .form-input:focus,
+        .form-textarea:focus {
+            outline: 0;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, .5)
+        }
+
+        .dark .form-input:focus,
+        .dark .form-textarea:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, .6)
+        }
+
+        .note-description-truncate {
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            height: 6rem
+        }
+
+        #read-note-modal.flex {
+            display: flex
+        }
+
+        #read-note-modal:not(.hidden) {
+            animation: fadeInBg .2s ease-out forwards
+        }
+
+        #read-note-modal:not(.hidden) #modal-content {
+            animation: zoomInModal .2s ease-out forwards
+        }
+
+        @keyframes fadeInBg {
+            from {
+                opacity: 0
+            }
+
+            to {
+                opacity: 1
+            }
+        }
+
+        @keyframes zoomInModal {
+            from {
+                transform: scale(.97);
+                opacity: 0
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1
+            }
+        }
+
+        .tag-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: .25rem
+        }
+
+        .sr-only-focusable:focus {
+            position: static !important;
+            width: auto;
+            height: auto;
+            margin: 0;
+            overflow: visible;
+            clip: auto
+        }
+    </style>
+    <script>
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) { document.documentElement.classList.add('dark') } else { document.documentElement.classList.remove('dark') }
+    </script>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 min-h-screen">
+    <a href="#main" class="sr-only sr-only-focusable focus:ring-2 focus:ring-blue-500 focus:outline-none">Skip to
+        content</a>
+    <div class="container mx-auto p-4 md:p-8 max-w-6xl" id="main">
+        <header class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
+            <div class="flex items-center gap-3">
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">NoteFlow</h1>
+                <span
+                    class="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Enhanced</span>
+            </div>
+            <div class="flex items-center gap-2 md:gap-3">
+                <button id="export-btn"
+                    class="px-3 py-2 text-sm rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">Export
+                    JSON</button>
+                <label class="px-3 py-2 text-sm rounded-lg bg-amber-600 text-white hover:bg-amber-700 cursor-pointer">
+                    <input id="import-input" type="file" accept="application/json" class="hidden" />Import JSON
+                </label>
+                <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
+                    aria-label="Toggle dark mode">
+                    <svg id="theme-toggle-light-icon" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <svg id="theme-toggle-dark-icon" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <main>
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md mb-6">
+                <form id="note-form" class="space-y-4" autocomplete="off">
+                    <input type="hidden" id="note-id">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="md:col-span-2">
+                            <label for="note-title"
+                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
+                            <input type="text" id="note-title"
+                                class="form-input w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3"
+                                placeholder="e.g., Chapter 5 Summary" required>
+                        </div>
+                        <div>
+                            <label for="note-date"
+                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+                            <input type="date" id="note-date"
+                                class="form-input w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3"
+                                required>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="note-tags"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags (comma
+                            separated)</label>
+                        <input type="text" id="note-tags"
+                            class="form-input w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3"
+                            placeholder="Study, DSA, Work">
+                    </div>
+                    <div>
+                        <label for="note-description"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description /
+                            Notes</label>
+                        <textarea id="note-description" rows="5"
+                            class="form-textarea w-full bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-3"
+                            placeholder="Write your detailed notes here..." required></textarea>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3 justify-between">
+                        <div class="flex items-center gap-2">
+                            <label for="sort-select" class="text-sm text-gray-600 dark:text-gray-300">Sort</label>
+                            <select id="sort-select"
+                                class="form-input bg-gray-100 dark:bg-gray-700 border-transparent rounded-lg p-2">
+                                <option value="date-desc">Date (new → old)</option>
+                                <option value="date-asc">Date (old → new)</option>
+                                <option value="title">Title (A → Z)</option>
+                                <option value="updated">Recently Edited</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" id="cancel-edit-btn"
+                                class="hidden px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">Cancel</button>
+                            <button type="submit" id="save-btn"
+                                class="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-800">Save
+                                Note</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="mb-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div class="lg:col-span-2">
+                    <label for="search-bar" class="sr-only">Search</label>
+                    <input type="text" id="search-bar"
+                        class="w-full bg-white dark:bg-gray-800 border-transparent rounded-lg p-4 shadow-sm form-input"
+                        placeholder="🔍 Search by title or description...">
+                </div>
+                <div>
+                    <label for="tag-filter" class="sr-only">Filter by Tag</label>
+                    <select id="tag-filter"
+                        class="w-full bg-white dark:bg-gray-800 border-transparent rounded-lg p-4 shadow-sm form-input">
+                        <option value="">All tags</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="notes-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            <div id="no-notes-message" class="hidden text-center py-12">
+                <p class="text-gray-500 dark:text-gray-400">No notes found. Create one to get started!</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Read Modal -->
+    <div id="read-note-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60">
+        <div id="modal-content" class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-11/12 max-w-2xl">
+            <div class="p-6 md:p-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 id="modal-title" class="text-2xl font-bold text-gray-900 dark:text-white"></h2>
+                    <button id="modal-close-btn"
+                        class="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                        aria-label="Close read dialog">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <p id="modal-date" class="text-sm text-gray-500 dark:text-gray-400 mb-2"></p>
+                <div id="modal-tags" class="flex flex-wrap gap-2 mb-4"></div>
+                <div class="max-h-[60vh] overflow-y-auto pr-2">
+                    <p id="modal-description" class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap"></p>
+                </div>
+                <div class="mt-6 flex justify-end gap-2">
+                    <button id="modal-share-btn"
+                        class="px-3 py-2 text-sm rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">Copy to
+                        Clipboard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    <div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-11/12 max-w-md p-6">
+            <h3 class="text-lg font-semibold mb-2">Delete this note?</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">This action cannot be undone.</p>
+            <div class="flex justify-end gap-3">
+                <button id="confirm-cancel" class="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700">Cancel</button>
+                <button id="confirm-delete"
+                    class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toasts -->
+    <div id="toast-container" class="fixed bottom-4 left-1/2 -translate-x-1/2 space-y-2 z-[60]"></div>
+
+    <script>
+        const $ = (q, root = document) => root.querySelector(q); const $$ = (q, root = document) => [...root.querySelectorAll(q)];
+
+        const els = {};
+        document.addEventListener('DOMContentLoaded', () => {
+            els.form = $('#note-form');
+            els.id = $('#note-id');
+            els.title = $('#note-title');
+            els.date = $('#note-date');
+            els.desc = $('#note-description');
+            els.tags = $('#note-tags');
+            els.save = $('#save-btn');
+            els.cancel = $('#cancel-edit-btn');
+            els.notes = $('#notes-container');
+            els.search = $('#search-bar');
+            els.sort = $('#sort-select');
+            els.tagFilter = $('#tag-filter');
+            els.noNotes = $('#no-notes-message');
+            els.themeToggle = $('#theme-toggle');
+            els.lightIcon = $('#theme-toggle-light-icon');
+            els.darkIcon = $('#theme-toggle-dark-icon');
+            els.export = $('#export-btn');
+            els.import = $('#import-input');
+            els.readModal = $('#read-note-modal');
+            els.modalTitle = $('#modal-title');
+            els.modalDate = $('#modal-date');
+            els.modalDesc = $('#modal-description');
+            els.modalTags = $('#modal-tags');
+            els.modalClose = $('#modal-close-btn');
+            els.modalShare = $('#modal-share-btn');
+            els.confirmModal = $('#confirm-modal');
+            els.confirmCancel = $('#confirm-cancel');
+            els.confirmDelete = $('#confirm-delete');
+            init();
+        });
+
+        const toast = (msg) => {
+            const c = $('#toast-container');
+            const t = document.createElement('div');
+            t.className = 'px-4 py-2 rounded-xl shadow bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900';
+            t.textContent = msg; c.appendChild(t);
+            setTimeout(() => { t.classList.add('opacity-0', 'transition'); setTimeout(() => t.remove(), 300) }, 1800);
+        };
+
+        const storage = {
+            get: () => JSON.parse(localStorage.getItem('notes') || '[]'),
+            set: (n) => localStorage.setItem('notes', JSON.stringify(n)),
+            getDraft: () => JSON.parse(localStorage.getItem('draft') || 'null'),
+            setDraft: (d) => localStorage.setItem('draft', JSON.stringify(d)),
+            clearDraft: () => localStorage.removeItem('draft')
+        };
+
+        let deleteTargetId = null;
+
+        const updateThemeIcons = () => {
+            if (document.documentElement.classList.contains('dark')) { els.lightIcon.classList.add('hidden'); els.darkIcon.classList.remove('hidden'); }
+            else { els.lightIcon.classList.remove('hidden'); els.darkIcon.classList.add('hidden'); }
+        };
+
+        const normalizeTags = (str) => [...new Set(str.split(',').map(s => s.trim()).filter(Boolean).map(s => s.toLowerCase()))];
+
+        const renderTagFilter = () => {
+            const all = storage.get().flatMap(n => n.tags || []);
+            const uniq = [...new Set(all)].sort();
+            els.tagFilter.innerHTML = '<option value="">All tags</option>' + uniq.map(t => `<option value="${t}">${t}</option>`).join('');
+        };
+
+        const formatDate = (d, opts) => new Date(d).toLocaleDateString('en-US', opts || { month: 'short', day: 'numeric', year: 'numeric' });
+
+        const renderNotes = () => {
+            let notes = storage.get();
+            const q = els.search.value.toLowerCase();
+            const tag = els.tagFilter.value;
+            const sort = els.sort.value;
+
+            if (q) { notes = notes.filter(n => n.title.toLowerCase().includes(q) || n.description.toLowerCase().includes(q)); }
+            if (tag) { notes = notes.filter(n => (n.tags || []).includes(tag)); }
+
+            notes.sort((a, b) => {
+                if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+                if (sort === 'date-asc') return new Date(a.date) - new Date(b.date);
+                if (sort === 'title') return a.title.localeCompare(b.title);
+                if (sort === 'updated') return (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt);
+                return new Date(b.date) - new Date(a.date);
+            });
+
+            els.notes.innerHTML = '';
+            els.noNotes.classList.toggle('hidden', notes.length > 0);
+
+            notes.forEach(n => {
+                const card = document.createElement('div');
+                card.className = 'note-card bg-white dark:bg-gray-800 rounded-xl shadow-lg flex flex-col justify-between';
+                card.dataset.id = n.id;
+                const tagChips = (n.tags || []).map(t => `<span class="tag-chip text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">#${t}</span>`).join(' ');
+                card.innerHTML = `
+          <div class="p-5 cursor-pointer flex-grow note-content-area">
+            <div class="flex justify-between items-start mb-2">
+              <h3 class="text-xl font-semibold text-gray-900 dark:text-white">${escapeHtml(n.title)}</h3>
+              <div class="flex items-center gap-2">
+                <button class="pin-btn p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700" title="${n.pinned ? 'Unpin' : 'Pin'}">
+                  ${n.pinned ? starIcon(true) : starIcon(false)}
+                </button>
+                <span class="text-xs text-gray-500 dark:text-gray-400 font-medium bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full whitespace-nowrap">${formatDate(n.date, { month: 'short', day: 'numeric' })}</span>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-2 mb-2">${tagChips}</div>
+            <p class="text-gray-600 dark:text-gray-300 whitespace-pre-wrap note-description-truncate">${escapeHtml(n.description)}</p>
+          </div>
+          <div class="flex justify-between items-center p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 rounded-b-xl">
+            <span class="text-xs text-gray-400">Edited ${formatDate(n.updatedAt || n.createdAt, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+            <div class="flex gap-2">
+              <button class="share-btn text-sm text-indigo-600 hover:text-indigo-800">Share</button>
+              <button class="edit-btn text-sm text-blue-600 hover:text-blue-800">Edit</button>
+              <button class="delete-btn text-sm text-red-600 hover:text-red-800">Delete</button>
+            </div>
+          </div>`;
+                els.notes.appendChild(card);
+            });
+        };
+
+        const escapeHtml = (s) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+        const resetForm = () => {
+            els.form.reset();
+            els.id.value = '';
+            els.save.textContent = 'Save Note';
+            els.cancel.classList.add('hidden');
+            els.date.value = new Date().toISOString().split('T')[0];
+        };
+
+        const openReadModal = (note) => {
+            els.modalTitle.textContent = note.title;
+            els.modalDate.textContent = new Date(note.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            els.modalDesc.textContent = note.description;
+            els.modalTags.innerHTML = (note.tags || []).map(t => `<span class="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700">#${t}</span>`).join(' ');
+            els.readModal.classList.remove('hidden'); els.readModal.classList.add('flex');
+            trapFocus(els.readModal);
+        };
+        const closeReadModal = () => { els.readModal.classList.add('hidden'); els.readModal.classList.remove('flex'); releaseFocusTrap(); };
+
+        const openConfirm = (id) => { deleteTargetId = id; els.confirmModal.classList.remove('hidden'); els.confirmModal.classList.add('flex'); trapFocus(els.confirmModal) };
+        const closeConfirm = () => { deleteTargetId = null; els.confirmModal.classList.add('hidden'); els.confirmModal.classList.remove('flex'); releaseFocusTrap(); };
+
+        let focusTrapPrev = null; let focusTrapEls = []; let focusTrapIdx = 0;
+        const trapFocus = (container) => {
+            focusTrapPrev = document.activeElement;
+            focusTrapEls = $$('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])', container).filter(el => !el.hasAttribute('disabled'));
+            focusTrapIdx = 0; (focusTrapEls[0] || container).focus();
+            container.addEventListener('keydown', focusHandler);
+        };
+        const releaseFocusTrap = () => {
+            const c = els.readModal.classList.contains('flex') ? els.readModal : els.confirmModal; c.removeEventListener('keydown', focusHandler);
+            focusTrapPrev && focusTrapPrev.focus();
+        };
+        const focusHandler = (e) => {
+            if (e.key === 'Escape') { if (els.readModal.classList.contains('flex')) closeReadModal(); if (els.confirmModal.classList.contains('flex')) closeConfirm(); }
+            if (e.key === 'Tab') {
+                e.preventDefault(); if (!focusTrapEls.length) return; focusTrapIdx = (focusTrapIdx + (e.shiftKey ? -1 : 1) + focusTrapEls.length) % focusTrapEls.length; focusTrapEls[focusTrapIdx].focus();
+            }
+        };
+
+        function init() {
+            updateThemeIcons();
+            els.date.value = new Date().toISOString().split('T')[0];
+
+            const draft = storage.getDraft();
+            if (draft) { els.title.value = draft.title || ''; els.desc.value = draft.description || ''; els.tags.value = (draft.tags || []).join(', '); els.date.value = draft.date || els.date.value; }
+
+            els.form.addEventListener('input', () => {
+                storage.setDraft({ title: els.title.value, date: els.date.value, description: els.desc.value, tags: normalizeTags(els.tags.value) });
+            });
+
+            els.form.addEventListener('submit', e => {
+                e.preventDefault();
+                const id = els.id.value || crypto.randomUUID();
+                const now = Date.now();
+                const note = { id, title: els.title.value.trim(), date: els.date.value, description: els.desc.value.trim(), tags: normalizeTags(els.tags.value), pinned: false, createdAt: now, updatedAt: now };
+                if (!note.title || !note.date || !note.description) { return }
+                let notes = storage.get();
+                const idx = notes.findIndex(n => n.id === id);
+                if (idx > -1) { note.createdAt = notes[idx].createdAt; note.pinned = notes[idx].pinned; notes[idx] = { ...notes[idx], ...note }; toast('Note updated'); }
+                else { notes.push(note); toast('Note saved'); }
+                storage.set(notes); storage.clearDraft(); resetForm(); renderTagFilter(); renderNotes();
+            });
+
+            els.cancel.addEventListener('click', () => { resetForm(); storage.clearDraft(); });
+            els.search.addEventListener('input', renderNotes);
+            els.sort.addEventListener('change', renderNotes);
+            els.tagFilter.addEventListener('change', renderNotes);
+
+            els.notes.addEventListener('click', e => {
+                const card = e.target.closest('.note-card'); if (!card) return; const id = card.dataset.id; const notes = storage.get(); const n = notes.find(x => x.id === id);
+                if (e.target.closest('.delete-btn')) { openConfirm(id); }
+                else if (e.target.closest('.edit-btn')) {
+                    if (!n) return; els.id.value = n.id; els.title.value = n.title; els.date.value = new Date(n.date).toISOString().split('T')[0]; els.desc.value = n.description; els.tags.value = (n.tags || []).join(', '); els.save.textContent = 'Update Note'; els.cancel.classList.remove('hidden'); window.scrollTo({ top: 0, behavior: 'smooth' }); els.title.focus();
+                } else if (e.target.closest('.pin-btn')) {
+                    if (!n) return; n.pinned = !n.pinned; n.updatedAt = Date.now(); storage.set(notes); renderNotes(); toast(n.pinned ? 'Pinned' : 'Unpinned');
+                } else if (e.target.closest('.share-btn')) {
+                    if (!n) return; const text = `${n.title}\n${formatDate(n.date, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\nTags: ${(n.tags || []).join(', ') || '-'}\n\n${n.description}`; navigator.clipboard.writeText(text).then(() => toast('Copied to clipboard'));
+                } else if (e.target.closest('.note-content-area')) {
+                    if (!n) return; openReadModal(n);
+                }
+            });
+
+            els.modalClose.addEventListener('click', closeReadModal);
+            els.readModal.addEventListener('click', e => { if (e.target === els.readModal) closeReadModal(); });
+            els.modalShare.addEventListener('click', () => {
+                const t = `${els.modalTitle.textContent}\n${els.modalDate.textContent}\n${els.modalTags.textContent.trim()}\n\n${els.modalDesc.textContent}`; navigator.clipboard.writeText(t).then(() => toast('Copied to clipboard'));
+            });
+
+            els.confirmCancel.addEventListener('click', closeConfirm);
+            els.confirmModal.addEventListener('click', e => { if (e.target === els.confirmModal) closeConfirm(); });
+            els.confirmDelete.addEventListener('click', () => {
+                if (!deleteTargetId) return; const notes = storage.get().filter(n => n.id !== deleteTargetId); storage.set(notes); closeConfirm(); renderTagFilter(); renderNotes(); toast('Note deleted');
+            });
+
+            els.themeToggle.addEventListener('click', () => { document.documentElement.classList.toggle('dark'); localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light'); updateThemeIcons(); });
+
+            els.export.addEventListener('click', () => {
+                const blob = new Blob([JSON.stringify(storage.get(), null, 2)], { type: 'application/json' });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'noteflow-notes.json'; a.click(); URL.revokeObjectURL(a.href);
+            });
+            els.import.addEventListener('change', async (e) => {
+                const f = e.target.files[0]; if (!f) return; try {
+                    const text = await f.text(); const incoming = JSON.parse(text); if (!Array.isArray(incoming)) throw new Error('Invalid');
+                    const current = storage.get(); const map = new Map(current.map(n => [n.id, n])); incoming.forEach(n => { if (!n.id) n.id = crypto.randomUUID(); map.set(n.id, { ...map.get(n.id), ...n }); });
+                    storage.set([...map.values()]); renderTagFilter(); renderNotes(); toast('Import complete');
+                } catch { toast('Import failed'); }
+                e.target.value = '';
+            });
+
+            renderTagFilter();
+            renderNotes();
+        }
+
+        const starIcon = (filled) => filled ?
+            `<svg class="w-5 h-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.802 2.036a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118L10.5 14.347a1 1 0 00-1 0l-3.885 2.836c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L1.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>`
+            : `<svg class="w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.48 3.499a.75.75 0 011.04 0l2.18 2.179a.75.75 0 00.424.212l3.07.445a.75.75 0 01.416 1.279l-2.22 2.163a.75.75 0 00-.216.663l.524 3.058a.75.75 0 01-1.088.791l-2.745-1.442a.75.75 0 00-.698 0L8.43 14.952a.75.75 0 01-1.088-.79l.524-3.059a.75.75 0 00-.216-.662L5.43 8.614a.75.75 0 01.416-1.279l3.07-.445a.75.75 0 00.424-.212l2.14-2.179z"/></svg>`;
+    </script>
+</body>
+
+</html>
