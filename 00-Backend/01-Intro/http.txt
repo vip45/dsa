@@ -1,1 +1,0 @@
-the http module in node js is a built in core module that allows your backend to create web servers , handle incoming requests and send responses using the http protocol the foundation of all web communication
