@@ -2,10 +2,11 @@
 using namespace std;
 
 int main(){
-    int arr[]={43,76,34,9,7,24,564,3,853,35,32};
-    int size = sizeof(arr)/sizeof(arr[0]);
-    int maxi=INT_MIN;
-    for(int i=0;i<size;i++){
+    int arr[] = {4,3,36,3,27,6,23,432,2,23,765,0};
+    int n = sizeof(arr)/sizeof(arr[0]);
+
+    int maxi = INT_MIN;
+    for(int i=0;i<n;i++){
         if(arr[i]>maxi){
             maxi=arr[i];
         }
